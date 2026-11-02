@@ -27,6 +27,35 @@ enum layers {
 #define FN_MAC MO(MAC_FN)
 #define FN_WIN MO(WIN_FN)
 
+/*
+ * Hold the physical Fn + Esc keys for 2 seconds to enter STM32 DFU mode.
+ * Esc = matrix [0, 0], Fn = matrix [5, 12] on the ANSI encoder layout.
+ * Matrix coordinates keep this shortcut working even when VIA remaps keys.
+ * Use a USB cable when flashing.
+ */
+#define V6MAX_DFU_HOLD_MS 2000
+
+void matrix_scan_user(void) {
+    static bool     combo_active = false;
+    static bool     boot_requested = false;
+    static uint32_t combo_start = 0;
+
+    const bool combo_down = matrix_is_on(0, 0) && matrix_is_on(5, 12);
+    if (!combo_down) {
+        combo_active   = false;
+        boot_requested = false;
+        return;
+    }
+
+    if (!combo_active) {
+        combo_active = true;
+        combo_start  = timer_read32();
+    } else if (!boot_requested && timer_elapsed32(combo_start) >= V6MAX_DFU_HOLD_MS) {
+        boot_requested = true;
+        reset_keyboard();
+    }
+}
+
 // clang-format off
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [MAC_BASE] = LAYOUT_ansi_109(
