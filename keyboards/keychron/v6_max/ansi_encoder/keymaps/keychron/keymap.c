@@ -71,7 +71,7 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
             return;
         }
         v6max_key_log_enabled = data[3] == 1;
-        uprintf("[V6MAX] key logging %s (PC HID command)\\n",
+        uprintf("[V6MAX] key logging %s (PC HID command)\n",
                 v6max_key_log_enabled ? "ON" : "OFF");
     }
 
