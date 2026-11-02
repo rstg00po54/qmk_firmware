@@ -17,6 +17,7 @@
 #include QMK_KEYBOARD_H
 #include "keychron_common.h"
 #include "print.h"
+#include "via.h"
 
 enum layers {
     MAC_BASE,
@@ -44,6 +45,38 @@ enum layers {
 #define V6MAX_LOG_TOGGLE_HOLD_MS 1000
 
 static bool v6max_key_log_enabled = false;
+
+/*
+ * VIA custom channel for the Windows QMK Toolbox HID Log button.
+ * Send: [07, F1, 01, 0/1, 'V', '6', 'L', 'G', ...]
+ * Reply: VIA echoes the packet, preserving state in byte 3.
+ * This intentionally uses the existing Raw HID interface, not a
+ * new USB endpoint. Physical Fn+F16 remains usable as before.
+ */
+#define V6MAX_LOG_CHANNEL 0xF1
+#define V6MAX_LOG_CONTROL 0x01
+
+void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
+    if (length != 32 || data[1] != V6MAX_LOG_CHANNEL ||
+        data[2] != V6MAX_LOG_CONTROL ||
+        (data[0] != id_custom_set_value && data[0] != id_custom_get_value) ||
+        data[4] != 'V' || data[5] != '6' || data[6] != 'L' || data[7] != 'G') {
+        data[0] = id_unhandled;
+        return;
+    }
+
+    if (data[0] == id_custom_set_value) {
+        if (data[3] > 1) {
+            data[0] = id_unhandled;
+            return;
+        }
+        v6max_key_log_enabled = data[3] == 1;
+        uprintf("[V6MAX] key logging %s (PC HID command)\n",
+                v6max_key_log_enabled ? "ON" : "OFF");
+    }
+
+    data[3] = v6max_key_log_enabled ? 1 : 0;
+}
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (v6max_key_log_enabled) {
