@@ -47,7 +47,7 @@ static bool v6max_key_log_enabled = false;
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (v6max_key_log_enabled) {
-        uprintf("[V6MAX KEY] t=%lu layer=%u %s row=%u col=%u kc=0x%04X\\n",
+        uprintf("[V6MAX KEY] t=%lu layer=%u %s row=%u col=%u kc=0x%04X\n",
                 (unsigned long)timer_read32(),
                 (unsigned int)get_highest_layer(layer_state | default_layer_state),
                 record->event.pressed ? "DOWN" : "UP",
@@ -79,7 +79,7 @@ void matrix_scan_user(void) {
     } else if (!log_combo_handled && timer_elapsed32(log_combo_start) >= V6MAX_LOG_TOGGLE_HOLD_MS) {
         log_combo_handled   = true;
         v6max_key_log_enabled = !v6max_key_log_enabled;
-        uprintf("[V6MAX] key logging %s (Fn+F16 held 1s)\\n", v6max_key_log_enabled ? "ON" : "OFF");
+        uprintf("[V6MAX] key logging %s (Fn+F16 held 1s)\n", v6max_key_log_enabled ? "ON" : "OFF");
     }
 
     const bool combo_down = matrix_is_on(0, 0) && matrix_is_on(5, 12);
