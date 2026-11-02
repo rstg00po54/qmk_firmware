@@ -16,6 +16,7 @@
 
 #include QMK_KEYBOARD_H
 #include "keychron_common.h"
+#include "print.h"
 
 enum layers {
     MAC_BASE,
@@ -35,10 +36,51 @@ enum layers {
  */
 #define V6MAX_DFU_HOLD_MS 2000
 
+/*
+ * USB HID console is deliberately off until the physical Fn + F16 keys
+ * (matrix [5,12] + [0,20]) are held together for one second.
+ * Repeating the same gesture disables logging. Wired USB is required.
+ */
+#define V6MAX_LOG_TOGGLE_HOLD_MS 1000
+
+static bool v6max_key_log_enabled = false;
+
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    if (v6max_key_log_enabled) {
+        uprintf("[V6MAX KEY] t=%lu layer=%u %s row=%u col=%u kc=0x%04X\\n",
+                (unsigned long)timer_read32(),
+                (unsigned int)get_highest_layer(layer_state | default_layer_state),
+                record->event.pressed ? "DOWN" : "UP",
+                (unsigned int)record->event.key.row,
+                (unsigned int)record->event.key.col,
+                (unsigned int)keycode);
+    }
+
+    return true;
+}
+
 void matrix_scan_user(void) {
     static bool     combo_active = false;
     static bool     boot_requested = false;
     static uint32_t combo_start = 0;
+
+
+    static bool     log_combo_active = false;
+    static bool     log_combo_handled = false;
+    static uint32_t log_combo_start = 0;
+
+    const bool log_combo_down = matrix_is_on(0, 20) && matrix_is_on(5, 12);
+    if (!log_combo_down) {
+        log_combo_active  = false;
+        log_combo_handled = false;
+    } else if (!log_combo_active) {
+        log_combo_active = true;
+        log_combo_start  = timer_read32();
+    } else if (!log_combo_handled && timer_elapsed32(log_combo_start) >= V6MAX_LOG_TOGGLE_HOLD_MS) {
+        log_combo_handled   = true;
+        v6max_key_log_enabled = !v6max_key_log_enabled;
+        uprintf("[V6MAX] key logging %s (Fn+F16 held 1s)\\n", v6max_key_log_enabled ? "ON" : "OFF");
+    }
 
     const bool combo_down = matrix_is_on(0, 0) && matrix_is_on(5, 12);
     if (!combo_down) {
