@@ -16,6 +16,8 @@
 
 #include QMK_KEYBOARD_H
 #include "keychron_common.h"
+#include "print.h"
+#include "via.h"
 
 enum layers {
     MAC_BASE,
@@ -26,6 +28,108 @@ enum layers {
 
 #define FN_MAC MO(MAC_FN)
 #define FN_WIN MO(WIN_FN)
+
+/*
+ * Hold the physical Fn + Esc keys for 2 seconds to enter STM32 DFU mode.
+ * Esc = matrix [0, 0], Fn = matrix [5, 12] on the ANSI encoder layout.
+ * Matrix coordinates keep this shortcut working even when VIA remaps keys.
+ * Use a USB cable when flashing.
+ */
+#define V6MAX_DFU_HOLD_MS 2000
+
+/*
+ * USB HID console is deliberately off until the physical Fn + F16 keys
+ * (matrix [5,12] + [0,20]) are held together for one second.
+ * Repeating the same gesture disables logging. Wired USB is required.
+ */
+#define V6MAX_LOG_TOGGLE_HOLD_MS 1000
+
+static bool v6max_key_log_enabled = false;
+
+/*
+ * VIA custom channel for the Windows QMK Toolbox HID Log button.
+ * Send: [07, F1, 01, 0/1, 'V', '6', 'L', 'G', ...]
+ * Reply: VIA echoes the packet, preserving state in byte 3.
+ * This intentionally uses the existing Raw HID interface, not a
+ * new USB endpoint. Physical Fn+F16 remains usable as before.
+ */
+#define V6MAX_LOG_CHANNEL 0xF1
+#define V6MAX_LOG_CONTROL 0x01
+
+void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
+    if (length != 32 || data[1] != V6MAX_LOG_CHANNEL ||
+        data[2] != V6MAX_LOG_CONTROL ||
+        (data[0] != id_custom_set_value && data[0] != id_custom_get_value) ||
+        data[4] != 'V' || data[5] != '6' || data[6] != 'L' || data[7] != 'G') {
+        data[0] = id_unhandled;
+        return;
+    }
+
+    if (data[0] == id_custom_set_value) {
+        if (data[3] > 1) {
+            data[0] = id_unhandled;
+            return;
+        }
+        v6max_key_log_enabled = data[3] == 1;
+        uprintf("[V6MAX] key logging %s (PC HID command)\n",
+                v6max_key_log_enabled ? "ON" : "OFF");
+    }
+
+    data[3] = v6max_key_log_enabled ? 1 : 0;
+}
+
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    if (v6max_key_log_enabled) {
+        uprintf("[V6MAX KEY] t=%lu layer=%u %s row=%u col=%u kc=0x%04X\n",
+                (unsigned long)timer_read32(),
+                (unsigned int)get_highest_layer(layer_state | default_layer_state),
+                record->event.pressed ? "DOWN" : "UP",
+                (unsigned int)record->event.key.row,
+                (unsigned int)record->event.key.col,
+                (unsigned int)keycode);
+    }
+
+    return true;
+}
+
+void matrix_scan_user(void) {
+    static bool     combo_active = false;
+    static bool     boot_requested = false;
+    static uint32_t combo_start = 0;
+
+
+    static bool     log_combo_active = false;
+    static bool     log_combo_handled = false;
+    static uint32_t log_combo_start = 0;
+
+    const bool log_combo_down = matrix_is_on(0, 20) && matrix_is_on(5, 12);
+    if (!log_combo_down) {
+        log_combo_active  = false;
+        log_combo_handled = false;
+    } else if (!log_combo_active) {
+        log_combo_active = true;
+        log_combo_start  = timer_read32();
+    } else if (!log_combo_handled && timer_elapsed32(log_combo_start) >= V6MAX_LOG_TOGGLE_HOLD_MS) {
+        log_combo_handled   = true;
+        v6max_key_log_enabled = !v6max_key_log_enabled;
+        uprintf("[V6MAX] key logging %s (Fn+F16 held 1s)\n", v6max_key_log_enabled ? "ON" : "OFF");
+    }
+
+    const bool combo_down = matrix_is_on(0, 0) && matrix_is_on(5, 12);
+    if (!combo_down) {
+        combo_active   = false;
+        boot_requested = false;
+        return;
+    }
+
+    if (!combo_active) {
+        combo_active = true;
+        combo_start  = timer_read32();
+    } else if (!boot_requested && timer_elapsed32(combo_start) >= V6MAX_DFU_HOLD_MS) {
+        boot_requested = true;
+        reset_keyboard();
+    }
+}
 
 // clang-format off
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
