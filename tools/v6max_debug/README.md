@@ -8,8 +8,9 @@ This is an **opt-in, temporary** key-event/scan-rate diagnostic build for the
 
 ```bash
 cd ~/KeychronQMK
-git fetch origin v6max_debug_hid
-git switch v6max_debug_hid
+git remote add myfork https://github.com/rstg00po54/qmk_firmware.git
+git fetch myfork v6max_debug_hid
+git switch --track -c v6max_debug_hid myfork/v6max_debug_hid
 qmk compile -kb keychron/v6_max/ansi_encoder -km debug
 ```
 
