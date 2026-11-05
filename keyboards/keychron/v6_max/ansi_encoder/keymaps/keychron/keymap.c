@@ -92,7 +92,37 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     return true;
 }
 
-void matrix_scan_user(void) {
+
+/*
+ * Log the actual RGB brightness after QMK has applied a key/encoder change.
+ * Fn + encoder is already mapped to UG_VALD / UG_VALU on both Fn layers.
+ * Only emit via the existing USB HID console when PC logging is enabled.
+ */
+static void v6max_rgb_brightness_log_task(void) {
+    static bool     initialized = false;
+    static uint8_t  last_value = 0;
+    static bool     last_enabled = false;
+
+    if (!v6max_key_log_enabled) {
+        initialized = false;
+        return;
+    }
+
+    const uint8_t value = rgb_matrix_get_val();
+    const bool    enabled = rgb_matrix_is_enabled();
+
+    if (!initialized || last_value != value || last_enabled != enabled) {
+        uprintf("[V6MAX RGB] brightness=%u/255 (%u%%), enabled=%s\\n",
+                (unsigned int)value,
+                (unsigned int)(((uint16_t)value * 100U + 127U) / 255U),
+                enabled ? "ON" : "OFF");
+        initialized = true;
+        last_value = value;
+        last_enabled = enabled;
+    }
+}
+
+void matrix_scan_user(void) {\n    v6max_rgb_brightness_log_task();
     static bool     combo_active = false;
     static bool     boot_requested = false;
     static uint32_t combo_start = 0;
