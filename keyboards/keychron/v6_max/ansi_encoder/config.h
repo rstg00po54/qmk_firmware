@@ -17,9 +17,9 @@
 #pragma once
 
 #ifdef RGB_MATRIX_ENABLE
-/* LED Current Configuration */
+/* Conservative +20% current-tune step from stock 0x28.\n * IMPORTANT: verify LED current, USB input current, and temperature before further increases.\n */
 #    define SNLED27351_CURRENT_TUNE \
-        { 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28, 0x28 }
+        { 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30 }
 
 /* RGB Matrix Configuration */
 #    define RGB_MATRIX_LED_COUNT 108
