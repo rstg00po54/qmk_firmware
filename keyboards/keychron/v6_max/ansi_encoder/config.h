@@ -17,9 +17,16 @@
 #pragma once
 
 #ifdef RGB_MATRIX_ENABLE
-/* Conservative +20% current-tune step from stock 0x28.\n * IMPORTANT: verify LED current, USB input current, and temperature before further increases.\n */
+/* RGB current tune: previous test = 0x30; this build = 0x40.
+ * This is a programmed setting, not a measured LED/USB current.
+ * Check LED specifications, USB input current and temperatures.
+ */
+#    define V6MAX_RGB_CURRENT_TUNE_VALUE 0x40U
 #    define SNLED27351_CURRENT_TUNE \
-        { 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30 }
+        { V6MAX_RGB_CURRENT_TUNE_VALUE,
+          V6MAX_RGB_CURRENT_TUNE_VALUE, V6MAX_RGB_CURRENT_TUNE_VALUE, V6MAX_RGB_CURRENT_TUNE_VALUE,
+          V6MAX_RGB_CURRENT_TUNE_VALUE, V6MAX_RGB_CURRENT_TUNE_VALUE, V6MAX_RGB_CURRENT_TUNE_VALUE,
+          V6MAX_RGB_CURRENT_TUNE_VALUE, V6MAX_RGB_CURRENT_TUNE_VALUE, V6MAX_RGB_CURRENT_TUNE_VALUE, V6MAX_RGB_CURRENT_TUNE_VALUE, V6MAX_RGB_CURRENT_TUNE_VALUE }
 
 /* RGB Matrix Configuration */
 #    define RGB_MATRIX_LED_COUNT 108
