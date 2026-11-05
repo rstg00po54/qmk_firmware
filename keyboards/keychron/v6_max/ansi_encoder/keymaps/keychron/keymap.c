@@ -112,7 +112,7 @@ static void v6max_rgb_brightness_log_task(void) {
     const bool    enabled = rgb_matrix_is_enabled();
 
     if (!initialized || last_value != value || last_enabled != enabled) {
-        uprintf("[V6MAX RGB] brightness=%u/255 (%u%%), enabled=%s\\n",
+        uprintf("[V6MAX RGB] brightness=%u/255 (%u%%), enabled=%s\n",
                 (unsigned int)value,
                 (unsigned int)(((uint16_t)value * 100U + 127U) / 255U),
                 enabled ? "ON" : "OFF");
