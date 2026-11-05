@@ -122,7 +122,8 @@ static void v6max_rgb_brightness_log_task(void) {
     }
 }
 
-void matrix_scan_user(void) {\n    v6max_rgb_brightness_log_task();
+void matrix_scan_user(void) {
+    v6max_rgb_brightness_log_task();
     static bool     combo_active = false;
     static bool     boot_requested = false;
     static uint32_t combo_start = 0;
